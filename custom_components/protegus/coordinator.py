@@ -14,7 +14,10 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import ProtegusApi, ProtegusAuthError, ProtegusError
-from .const import CONF_EMAIL, CONF_PASSWORD, CONF_TOKEN, DOMAIN, POLL_INTERVAL
+from .const import (
+    CONF_EMAIL, CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_TOKEN, DEFAULT_SCAN_INTERVAL, DOMAIN,
+    MAX_SCAN_INTERVAL, MIN_SCAN_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,6 +26,16 @@ AREA_KEYS = (
     "last_person_name", "alarm_time", "alarm_type",
 )
 PGM_KEYS = ("id", "name", "queue_no", "on", "type", "hw_assigned", "enabled", "pulse_time_in_seconds")
+
+
+def scan_interval(entry: ConfigEntry) -> timedelta:
+    """Polling interval from the entry options, clamped to a safe range."""
+    secs = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    try:
+        secs = int(secs)
+    except (TypeError, ValueError):
+        secs = DEFAULT_SCAN_INTERVAL
+    return timedelta(seconds=max(MIN_SCAN_INTERVAL, min(MAX_SCAN_INTERVAL, secs)))
 
 
 def _pick(src: dict[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
@@ -37,7 +50,7 @@ class ProtegusCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, api: ProtegusApi, system_id: int) -> None:
         super().__init__(
             hass, _LOGGER, config_entry=entry, name=DOMAIN,
-            update_interval=timedelta(seconds=POLL_INTERVAL),
+            update_interval=scan_interval(entry),
         )
         self.api = api
         self.system_id = system_id
@@ -93,7 +106,12 @@ class ProtegusCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await sio.connect(url, socketio_path="socket.io")
             _LOGGER.debug("Protegus socket.io connected")
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Protegus socket.io connect failed (%s); polling only", err)
+            # the connect URL carries the socket token, so never log it
+            msg = str(err).replace(str(self.api.socket_token), "***")
+            _LOGGER.warning(
+                "Protegus socket.io connect failed (%s: %s); polling only",
+                type(err).__name__, msg,
+            )
 
     async def async_sign_out(self) -> None:
         """Log out on the server, remove token / e-mail / password from memory and

@@ -10,7 +10,11 @@ CONF_TOKEN = "token"
 CONF_EMAIL = "email"
 CONF_PASSWORD = "password"
 
-POLL_INTERVAL = 60  # seconds; websocket pushes updates in between
+CONF_SCAN_INTERVAL = "scan_interval"
+DEFAULT_SCAN_INTERVAL = 60  # seconds; websocket pushes updates in between
+MIN_SCAN_INTERVAL = 10      # do not hammer the vendor API
+MAX_SCAN_INTERVAL = 3600
+POLL_INTERVAL = DEFAULT_SCAN_INTERVAL  # backwards compatible alias
 
 # Area status codes (from the web app's `N` enum)
 STATUS_DISARMED = 1

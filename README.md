@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<h1 align="center">Protegus2 for Home Assistant</h1>
+<h1 align="center">Protegus for Home Assistant</h1>
 
 <p align="center">
   <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Custom-orange.svg" alt="HACS Custom"></a>
@@ -25,7 +25,7 @@ Reverse-engineered from `web.protegus.app`: Protegus has an API but no public do
 - Control alarm areas: arm away, arm home, arm night, disarm.
 - PIN code is required for **every** arm/disarm and is never stored.
 - PGM outputs as switches and pulse buttons.
-- Realtime updates via socket.io, 60 s polling as fallback.
+- Realtime updates via socket.io, plus polling as a fallback (60 s by default, configurable).
 - Diagnostics: system online state and signal level.
 - **Sign out** button: ends the server session and wipes the token and login from HA.
 - Sign in with e-mail and password, or with a token (Google / Apple accounts).
@@ -35,6 +35,7 @@ Reverse-engineered from `web.protegus.app`: Protegus has an API but no public do
 
 - Home Assistant **2025.1** or newer (the logo in the integration list appears from 2026.3).
 - A Protegus account with at least one system.
+- The `python-socketio` dependency is installed automatically.
 
 ## Installation
 
@@ -90,6 +91,12 @@ Pick the region your account belongs to: **Europe** (`web.protegus.app`), **Nort
 | Signal level | `sensor` (diagnostic) | Connection signal strength. |
 | Sign out | `button` (config) | Sign out, see below. |
 
+## Update interval
+
+State changes normally arrive instantly through the socket.io connection. In addition, the integration polls the Protegus API (every 60 s by default) as a fallback. To change the polling interval: **Settings → Devices & services → Protegus → Configure** (10 to 3600 seconds). It applies after the next refresh, without a restart.
+
+Shorter intervals put more load on the unofficial Protegus API, and I do not know its rate limits, so keep it as long as you can live with. If updates only appear once per interval, the socket is probably not connected, see Troubleshooting.
+
 ## PIN code and automations
 
 A PIN code is **required for all** arm and disarm actions. HA does not store it: the code is sent with the command and the server is told not to remember it (`remember_pin: false`). In the alarm card you enter the code every time.
@@ -128,7 +135,11 @@ The button acts immediately, without a confirmation.
 ## Known limitations
 
 - **No zone (sensor) entities.** The Protegus app does not show zones, so the API does not expose them and HA cannot display them.
-- Accounts with 2FA are not supported (for now).
+- Accounts with 2FA are not supported.
+- E-mail and password sign-in (`POST /login`) has not been tested against a real account, because development used a Google sign-in.
+- The "triggered" state is a guess (`alarm_in_memory` while armed).
+- The `toggle-pgm` response shape is unverified.
+- socket.io connection with the token in the URL is unverified. If it fails, the integration falls back to polling only (60 s).
 - The unofficial API can change at any time and the integration may stop working.
 
 ## Troubleshooting
@@ -139,6 +150,7 @@ The button acts immediately, without a confirmation.
 | **Protegus: wrong PIN** | The server rejected the PIN. Check the code. |
 | **Protegus: PIN code is required** | Enter the code in the card or add `code:` in the automation. |
 | Entities *unavailable* | Check the **Online** diagnostic entity and that HA has internet access. |
+| State only updates once per interval (e.g. every minute) | The realtime socket.io connection is probably not working and only polling is active. Look in **Settings → System → Logs** for `Protegus socket.io connect failed` or `No socket credentials` and open an issue with that line. You can also shorten the update interval, see above. |
 | Asked to sign in after ~a year | The token expired, provide a new one through the HA notification. |
 
 Debug log (remove tokens and codes before sharing it):

@@ -67,5 +67,16 @@
         "name": "Sign out"
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Protegus options",
+        "description": "How often Home Assistant asks the Protegus server for the state. Realtime updates (socket) still arrive in between when the socket connection works. Shorter intervals put more load on the Protegus API.",
+        "data": {
+          "scan_interval": "Update interval (seconds)"
+        }
+      }
+    }
   }
 }

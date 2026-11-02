@@ -67,5 +67,16 @@
         "name": "Atsijungti"
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Protegus nustatymai",
+        "description": "Kaip dažnai Home Assistant klausia Protegus serverio apie būseną. Realaus laiko atnaujinimai (socket) vis tiek ateina tarp apklausų, kai socket ryšys veikia. Trumpesni intervalai labiau apkrauna Protegus API.",
+        "data": {
+          "scan_interval": "Atnaujinimo intervalas (sekundėmis)"
+        }
+      }
+    }
   }
 }
